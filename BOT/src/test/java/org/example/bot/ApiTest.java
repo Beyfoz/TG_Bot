@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ApiTest {
@@ -23,20 +24,65 @@ class ApiTest {
         api = new API();
         mockHttpClient = mock(CloseableHttpClient.class);
     }
+
     @Test
-    void testGetCoordinates_Success() throws IOException {
+    void testFetchWeatherForecast_Success() throws IOException {
         String mockGeoResponse = "[{\"lat\":55.625578,\"lon\":37.6063916}]";
-        CloseableHttpResponse mockResponse = mock(CloseableHttpResponse.class);
-        when(mockResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-        when(mockResponse.getStatusLine().getStatusCode()).thenReturn(200);
-        when(mockResponse.getEntity()).thenReturn(new StringEntity(mockGeoResponse));
+        String mockWeatherResponse = "{\"fact\":{\"temp\":20,\"condition\":\"clear\"}}";
 
-        // Мокаем HTTP клиент
-        when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockResponse);
+        CloseableHttpResponse mockGeoResponseEntity = mock(CloseableHttpResponse.class);
+        StatusLine mockGeoStatusLine = mock(StatusLine.class);
+        when(mockGeoStatusLine.getStatusCode()).thenReturn(200);
+        when(mockGeoResponseEntity.getStatusLine()).thenReturn(mockGeoStatusLine);
+        when(mockGeoResponseEntity.getEntity()).thenReturn(new StringEntity(mockGeoResponse));
 
-        double[] coordinates = api.getCoordinates("Москва");
-        assertNotNull(coordinates);
-        assertEquals(55.625578, coordinates[0], 0.0001); // Допуск для сравнения
-        assertEquals(37.6063916, coordinates[1], 0.0001); // Допуск для сравнения
+        CloseableHttpResponse mockWeatherResponseEntity = mock(CloseableHttpResponse.class);
+        StatusLine mockWeatherStatusLine = mock(StatusLine.class);
+        when(mockWeatherStatusLine.getStatusCode()).thenReturn(200);
+        when(mockWeatherResponseEntity.getStatusLine()).thenReturn(mockWeatherStatusLine);
+        when(mockWeatherResponseEntity.getEntity()).thenReturn(new StringEntity(mockWeatherResponse));
+
+        when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockGeoResponseEntity).thenReturn(mockWeatherResponseEntity);
+
+        String weatherData = api.fetchWeatherForecast("Москва");
+        assertNotNull(weatherData);
+        assertTrue(weatherData.contains("Температура: 20.00 °C"));
+    }
+
+    @Test
+    void testFetchWeatherForecast_CoordinatesNotFound() throws IOException {
+        String mockGeoResponse = "[]"; // No coordinates found
+
+        CloseableHttpResponse mockGeoResponseEntity = mock(CloseableHttpResponse.class);
+        StatusLine mockGeoStatusLine = mock(StatusLine.class);
+        when(mockGeoStatusLine.getStatusCode()).thenReturn(200);
+        when(mockGeoResponseEntity.getStatusLine()).thenReturn(mockGeoStatusLine);
+        when(mockGeoResponseEntity.getEntity()).thenReturn(new StringEntity(mockGeoResponse));
+
+        when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockGeoResponseEntity);
+
+        String weatherData = api.fetchWeatherForecast("НеизвестныйГород"); // Assuming this method exists
+        assertEquals("Не удалось найти координаты для города: НеизвестныйГород", weatherData);
+    }
+
+    @Test
+    void testFetchWeatherForecast_WeatherDataNotFound() throws IOException {
+        String mockGeoResponse = "[{\"lat\":55.625578,\"lon\":37.6063916}]";
+
+        CloseableHttpResponse mockGeoResponseEntity = mock(CloseableHttpResponse.class);
+        StatusLine mockGeoStatusLine = mock(StatusLine.class);
+        when(mockGeoStatusLine.getStatusCode()).thenReturn(200);
+        when(mockGeoResponseEntity.getStatusLine()).thenReturn(mockGeoStatusLine);
+        when(mockGeoResponseEntity.getEntity()).thenReturn(new StringEntity(mockGeoResponse));
+
+        CloseableHttpResponse mockWeatherResponseEntity = mock(CloseableHttpResponse.class);
+        StatusLine mockWeatherStatusLine = mock(StatusLine.class);
+        when(mockWeatherStatusLine.getStatusCode()).thenReturn(404); // Simulate a 404 error
+        when(mockWeatherResponseEntity.getStatusLine()).thenReturn(mockWeatherStatusLine);
+
+        when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockGeoResponseEntity).thenReturn(mockWeatherResponseEntity);
+
+        String weatherData = api.fetchWeatherForecast("Москва"); // Assuming this method exists
+        assertEquals("Не удалось получить данные о погоде. Статус: 404", weatherData);
     }
 }

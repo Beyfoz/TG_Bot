@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class API {
 
-    private static final String API_KEY = "03671f74-b3bf-4092-ae2b-50a849881709";
+    private static final String API_KEY = System.getenv("AKEY");
     private static final String WEATHER_API_URL = "https://api.weather.yandex.ru/v2/forecast?lat=%s&lon=%s";
     private static final String GEOCODING_API_URL = "https://nominatim.openstreetmap.org/search?q=%s&format=json&limit=1";
 
@@ -25,7 +25,7 @@ public class API {
         return fetchWeatherData(apiUrl);
     }
 
-    private double[] getCoordinates(String city) {
+    double[] getCoordinates(String city) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             String url = String.format(GEOCODING_API_URL, city.replace(" ", "%20"));
             HttpGet request = new HttpGet(url);

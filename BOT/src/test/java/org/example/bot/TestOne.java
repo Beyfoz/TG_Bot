@@ -20,5 +20,7 @@ public class TestOne {
         assertTrue(message.contains("/info"));
         assertTrue(message.contains("/help"));
         assertTrue(message.contains("/authors"));
+        assertTrue(message.contains("/pashalko"));
+        assertTrue(message.contains("/pogoda"));
     }
 }
