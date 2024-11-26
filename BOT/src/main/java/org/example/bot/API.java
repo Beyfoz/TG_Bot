@@ -11,7 +11,6 @@ import org.apache.http.util.EntityUtils;
 import java.io.IOException;
 
 public class API {
-
     private static final String API_KEY = System.getenv("AKEY");
     private static final String WEATHER_API_URL = "https://api.weather.yandex.ru/v2/forecast?lat=%s&lon=%s";
     private static final String GEOCODING_API_URL = "https://nominatim.openstreetmap.org/search?q=%s&format=json&limit=1";

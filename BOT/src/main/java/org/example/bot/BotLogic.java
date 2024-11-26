@@ -1,9 +1,5 @@
 package org.example.bot;
 
-import org.example.bot.commands.PogodaCommand;
-import org.example.bot.ListOfCommands;
-import org.example.bot.API;
-
 import java.util.HashMap;
 import java.util.Map;
 

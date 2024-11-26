@@ -33,6 +33,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 String responseMessage = botLogic.handleUserMessage(chatId, userMessage);
                 sendMessage(chatId, responseMessage);
+                //System.out.println("Получено сообщение от пользователя: " + userMessage + " в чате: " + chatId);
             }
         } catch (TelegramApiException e) {
             e.printStackTrace();
