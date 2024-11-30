@@ -11,20 +11,27 @@ import org.apache.http.util.EntityUtils;
 import java.io.IOException;
 
 public class API {
-    private static final String API_KEY = System.getenv("AKEY");
-    private static final String WEATHER_API_URL = "https://api.weather.yandex.ru/v2/forecast?lat=%s&lon=%s";
+    private static final String API_KEY = System.getenv("AKEY"); // Используйте переменную окружения для ключа API
+    private static final String WEATHER_API_URL_BASE = "https://api.weather.yandex.ru/v2/forecast?lat=%s&lon=%s";
     private static final String GEOCODING_API_URL = "https://nominatim.openstreetmap.org/search?q=%s&format=json&limit=1";
 
-    public String fetchWeatherForecast(String city) {
-        double[] coordinates = getCoordinates(city);
-        if (coordinates == null) {
-            return "Не удалось найти координаты для города: " + city;
-        }
-        String apiUrl = String.format(WEATHER_API_URL, coordinates[0], coordinates[1]);
+    // Метод для получения прогноза погоды по координатам
+    public String fetchWeatherForecast(Coordinates coordinates) {
+        String apiUrl = String.format(WEATHER_API_URL_BASE, coordinates.getLatitude(), coordinates.getLongitude());
         return fetchWeatherData(apiUrl);
     }
 
-    double[] getCoordinates(String city) {
+    // Метод для получения прогноза погоды по названию города
+    public String fetchWeatherByCity(String cityName) {
+        Coordinates coordinates = getCoordinates(cityName);
+        if (coordinates == null) {
+            return "Не удалось найти координаты для города: " + cityName;
+        }
+        return fetchWeatherForecast(coordinates);
+    }
+
+    // Метод для получения координат города
+    private Coordinates getCoordinates(String city) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             String url = String.format(GEOCODING_API_URL, city.replace(" ", "%20"));
             HttpGet request = new HttpGet(url);
@@ -43,14 +50,15 @@ public class API {
         }
     }
 
-    private double[] parseCoordinatesResponse(String jsonResponse) {
+    // Метод для парсинга ответа с координатами
+    private Coordinates parseCoordinatesResponse(String jsonResponse) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode arrayNode = objectMapper.readTree(jsonResponse);
             if (arrayNode.isArray() && arrayNode.size() > 0) {
                 double lat = arrayNode.get(0).path("lat").asDouble();
                 double lon = arrayNode.get(0).path("lon").asDouble();
-                return new double[]{lat, lon};
+                return new Coordinates(lat, lon);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -58,6 +66,7 @@ public class API {
         return null;
     }
 
+    // Метод для получения данных о погоде
     private String fetchWeatherData(String apiUrl) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpGet request = new HttpGet(apiUrl);
@@ -77,6 +86,7 @@ public class API {
         }
     }
 
+    // Метод для парсинга ответа о погоде
     private String parseWeatherResponse(String jsonResponse) {
         StringBuilder weatherBuilder = new StringBuilder();
         try {

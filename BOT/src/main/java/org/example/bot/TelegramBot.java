@@ -2,8 +2,9 @@ package org.example.bot;
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Location;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public class TelegramBot extends TelegramLongPollingBot {
@@ -15,25 +16,30 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "Goyda0911_bot";
+        return "YOUR_BOT_USERNAME"; // Замените на имя вашего бота
     }
 
     @Override
     public String getBotToken() {
-        return System.getenv("Token");
+        return System.getenv("Token"); // Токен хранится в переменной окружения
     }
 
     @Override
     public void onUpdateReceived(Update update) {
         try {
-            if (update.hasMessage() && update.getMessage().hasText()) {
+            if (update.hasMessage()) {
                 Message inMessage = update.getMessage();
                 String chatId = inMessage.getChatId().toString();
-                String userMessage = inMessage.getText();
 
-                String responseMessage = botLogic.handleUserMessage(chatId, userMessage);
-                sendMessage(chatId, responseMessage);
-                //System.out.println("Получено сообщение от пользователя: " + userMessage + " в чате: " + chatId);
+                if (inMessage.hasText()) {
+                    String userMessage = inMessage.getText();
+                    String responseMessage = botLogic.handleUserMessage(chatId, userMessage, null);
+                    sendMessage(chatId, responseMessage);
+                } else if (inMessage.hasLocation()) {
+                    Location location = inMessage.getLocation();
+                    String responseMessage = botLogic.handleUserMessage(chatId, null, location);
+                    sendMessage(chatId, responseMessage);
+                }
             }
         } catch (TelegramApiException e) {
             e.printStackTrace();

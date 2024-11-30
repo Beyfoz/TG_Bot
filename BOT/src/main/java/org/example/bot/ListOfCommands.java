@@ -4,7 +4,7 @@ import org.example.bot.commands.*;
 import java.util.HashMap;
 
 public class ListOfCommands {
-    private final HashMap<String, AbstractCommand> commandHashMap = new HashMap<String, AbstractCommand>();
+    private final HashMap<String, AbstractCommand> commandHashMap = new HashMap<>();
 
     public ListOfCommands() {
         commandHashMap.put("/info", new InfoCommand());
@@ -12,15 +12,14 @@ public class ListOfCommands {
         commandHashMap.put("/authors", new AuthorsCommand());
         commandHashMap.put("/help", new HelpCommand(commandHashMap));
         commandHashMap.put("/pogoda", new PogodaCommand());
+        commandHashMap.put("/city", new CityCommand()); // Добавьте команду для города
         commandHashMap.put("/pashalko", new PrivetCommand());
     }
 
-
     public String findCommand(String text) {
         if (commandHashMap.containsKey(text)) {
-            commandHashMap.get(text);
             return commandHashMap.get(text).getMessage();
         }
-        return "Command Not Found";
+        return "Команда не найдена";
     }
 }
