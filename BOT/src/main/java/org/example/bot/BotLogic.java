@@ -32,10 +32,10 @@ public class BotLogic {
             return api.fetchWeatherByCity(userMessage.trim());
         }
 
-        if (userMessage.startsWith("/pogoda")) {
+        if (userMessage.startsWith("/poglock")) {
             userAwaitingLocation.put(userId, true);
             return "Пожалуйста, отправьте свою геолокацию.";
-        } else if (userMessage.startsWith("/city")) {
+        } else if (userMessage.startsWith("/bolshiegoroda")) {
             userAwaitingCity.put(userId, true);
             return "Пожалуйста, введите название города.";
         } else {
