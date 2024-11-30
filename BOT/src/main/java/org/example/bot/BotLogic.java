@@ -19,26 +19,24 @@ public class BotLogic {
     }
 
     public String handleUserMessage(String userId, String userMessage, Location location) {
-        // Check if the bot is waiting for location from the user
         if (userAwaitingLocation.getOrDefault(userId, false) && location != null) {
-            userAwaitingLocation.put(userId, false); // Reset waiting state
-            // Create a Coordinates object from location
+            userAwaitingLocation.put(userId, false);
+
             Coordinates coordinates = new Coordinates(location.getLatitude(), location.getLongitude());
             return api.fetchWeatherForecast(coordinates);
         }
 
-        // Check if the bot is waiting for city name from the user
+
         if (userAwaitingCity.getOrDefault(userId, false)) {
-            userAwaitingCity.put(userId, false); // Reset waiting state
+            userAwaitingCity.put(userId, false);
             return api.fetchWeatherByCity(userMessage.trim());
         }
 
-        // Command handling
         if (userMessage.startsWith("/pogoda")) {
-            userAwaitingLocation.put(userId, true); // Set waiting state for location
+            userAwaitingLocation.put(userId, true);
             return "Пожалуйста, отправьте свою геолокацию.";
         } else if (userMessage.startsWith("/city")) {
-            userAwaitingCity.put(userId, true); // Set waiting state for city name
+            userAwaitingCity.put(userId, true);
             return "Пожалуйста, введите название города.";
         } else {
             return commandsList.findCommand(userMessage);

@@ -11,8 +11,8 @@ public class ListOfCommands {
         commandHashMap.put("/start", new StartCommand());
         commandHashMap.put("/authors", new AuthorsCommand());
         commandHashMap.put("/help", new HelpCommand(commandHashMap));
-        commandHashMap.put("/pogoda", new PogodaCommand());
-        commandHashMap.put("/city", new CityCommand()); // Добавьте команду для города
+        commandHashMap.put("/poglock", new PogodaCommand());
+        commandHashMap.put("/bolshiegoroda", new CityCommand());
         commandHashMap.put("/pashalko", new PrivetCommand());
     }
 

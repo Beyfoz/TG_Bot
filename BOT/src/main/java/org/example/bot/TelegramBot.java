@@ -16,12 +16,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "YOUR_BOT_USERNAME"; // Замените на имя вашего бота
+        return "@Goyda0911_bot";
     }
 
     @Override
     public String getBotToken() {
-        return System.getenv("Token"); // Токен хранится в переменной окружения
+        return System.getenv("Token");
     }
 
     @Override

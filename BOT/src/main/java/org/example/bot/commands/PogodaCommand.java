@@ -2,7 +2,7 @@ package org.example.bot.commands;
 
 public class PogodaCommand extends AbstractCommand {
     public String getDescription() {
-        return "Погода";
+        return "Погода по геолокации";
     }
 
     public String getMessage() {
