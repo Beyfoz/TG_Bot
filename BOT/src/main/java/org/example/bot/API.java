@@ -9,16 +9,32 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public class API {
     private static final String API_KEY = System.getenv("AKEY");
-    private static final String WEATHER_API_URL_BASE = "https://api.weather.yandex.ru/v2/forecast?lat=%s&lon=%s";
-    private static final String GEOCODING_API_URL = "https://nominatim.openstreetmap.org/search?q=%s&format=json&limit=1";
+    private static final URI WEATHER_API_URL_BASE;
+    private static final URI GEOCODING_API_URL;
+
+    static {
+        try {
+            WEATHER_API_URL_BASE = new URI("https", "api.weather.yandex.ru", "/v2/forecast", null);
+            GEOCODING_API_URL = new URI("https", "nominatim.openstreetmap.org", "/search", null);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Ошибка при создании URI", e);
+        }
+    }
 
     // Метод для получения прогноза погоды по координатам
     public String fetchWeatherForecast(Coordinates coordinates) {
-        String apiUrl = String.format(WEATHER_API_URL_BASE, coordinates.getLatitude(), coordinates.getLongitude());
-        return fetchWeatherData(apiUrl);
+        try {
+            URI apiUrl = new URI(WEATHER_API_URL_BASE.toString() + "?lat=" + coordinates.getLatitude() + "&lon=" + coordinates.getLongitude());
+            return fetchWeatherData(apiUrl);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return "Ошибка при создании URL для прогноза погоды.";
+        }
     }
 
     // Метод для получения прогноза погоды по названию города
@@ -33,7 +49,8 @@ public class API {
     // Метод для получения координат города
     private Coordinates getCoordinates(String city) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            String url = String.format(GEOCODING_API_URL, city.replace(" ", "%20"));
+            URI url = new URI(GEOCODING_API_URL.toString() + "?q=" + city.replace(" ", "%20") + "&format=json&limit=1");
+
             HttpGet request = new HttpGet(url);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -44,7 +61,7 @@ public class API {
                     return null;
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
             return null;
         }
@@ -67,7 +84,7 @@ public class API {
     }
 
     // Метод для получения данных о погоде
-    private String fetchWeatherData(String apiUrl) {
+    private String fetchWeatherData(URI apiUrl) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpGet request = new HttpGet(apiUrl);
             request.addHeader("X-Yandex-Weather-Key", API_KEY);
@@ -87,6 +104,7 @@ public class API {
     }
 
     // Метод для парсинга ответа о погоде
+// Метод для парсинга ответа о погоде
     private String parseWeatherResponse(String jsonResponse) {
         StringBuilder weatherBuilder = new StringBuilder();
         try {
@@ -98,7 +116,7 @@ public class API {
             double temperature = factNode.path("temp").asDouble();
 
             weatherBuilder.append("Температура: ").append(String.format("%.2f", temperature)).append(" °C\n");
-            weatherBuilder.append("Описание: ").append(description).append("\n");
+            weatherBuilder.append("Описание: ").append(translateCondition(description)).append("\n");
 
             JsonNode forecastsNode = rootNode.path("forecasts");
             if (forecastsNode.isArray() && !forecastsNode.isEmpty()) {
@@ -109,7 +127,7 @@ public class API {
 
                     weatherBuilder.append("Дата: ").append(date).append("\n");
                     weatherBuilder.append("Средняя температура: ").append(String.format("%.2f", dayTemp)).append(" °C\n");
-                    weatherBuilder.append("Условия: ").append(dayCondition).append("\n\n");
+                    weatherBuilder.append("Условия: ").append(translateCondition(dayCondition)).append("\n\n");
                 }
             }
         } catch (IOException e) {
@@ -118,4 +136,47 @@ public class API {
         }
         return weatherBuilder.toString();
     }
+
+    // Метод для перевода условий погоды на русский язык
+    private String translateCondition(String condition) {
+        switch (condition) {
+            case "clear":
+                return "ясно";
+            case "partly-cloudy":
+                return "переменная облачность";
+            case "cloudy":
+                return "облачно";
+            case "overcast":
+                return "пасмурно";
+            case "drizzle":
+                return "морось";
+            case "light-rain":
+                return "небольшой дождь";
+            case "rain":
+                return "дождь";
+            case "moderate-rain":
+                return "умеренный дождь";
+            case "heavy-rain":
+                return "сильный дождь";
+            case "light-snow":
+                return "небольшой снег";
+            case "snow":
+                return "снег";
+            case "snow-showers":
+                return "снегопад";
+            case "hail":
+                return "град";
+            case "fog":
+                return "туман";
+            case "wind":
+                return "ветрено";
+            case "storm":
+                return "шторм";
+            case "hurricane":
+                return "ураган";
+            default:
+                return "неизвестно";
+        }
+    }
+
 }

@@ -1,6 +1,6 @@
 package org.example.bot;
 
-import org.example.bot.ListOfCommands;
+
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,6 +21,7 @@ public class TestOne {
         assertTrue(message.contains("/help"));
         assertTrue(message.contains("/authors"));
         assertTrue(message.contains("/pashalko"));
-        assertTrue(message.contains("/pogoda"));
+        assertTrue(message.contains("/poglock"));
+        assertTrue(message.contains("/bolshiegoroda"));
     }
 }
