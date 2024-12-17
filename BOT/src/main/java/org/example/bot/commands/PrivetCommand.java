@@ -5,6 +5,6 @@ public class PrivetCommand extends AbstractCommand{
         return "Пасхалка";
     }
     public String getMessage(){
-        return "поГОЙДА";
+        return "1";
     }
 }

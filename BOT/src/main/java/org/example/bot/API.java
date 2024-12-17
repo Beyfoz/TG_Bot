@@ -12,25 +12,30 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class API {
-    private static final String API_KEY = System.getenv("AKEY");
+    private static final String WEATHER_API_KEY = "A_key"; // API ключ для погоды
+    private static final String NEWS_API_KEY = "N_key"; //  API ключ для новостей
     private static final URI WEATHER_API_URL_BASE;
     private static final URI GEOCODING_API_URL;
+    private static final URI NEWS_API_URL;
     private static List<String> cities;
+
 
     static {
         try {
             WEATHER_API_URL_BASE = new URI("https", "api.weather.yandex.ru", "/v2/forecast", null);
             GEOCODING_API_URL = new URI("https", "nominatim.openstreetmap.org", "/search", null);
-            loadCities(); // Загружаем города при инициализации
+            NEWS_API_URL = new URI("https", "newsapi.org", "/v2/everything", null);
+            loadCities();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Ошибка при создании URI", e);
         }
     }
-
 
     private static void loadCities() {
         cities = new ArrayList<>();
@@ -51,8 +56,6 @@ public class API {
         }
     }
 
-
-
     public String fetchWeatherByCity(String cityName) {
         Coordinates coordinates = getCoordinates(cityName);
         if (coordinates == null) {
@@ -60,10 +63,12 @@ public class API {
             return "Не удалось найти координаты для города: " + cityName +
                     (suggestions.isEmpty() ? "" : ". Возможно, вы имели в виду: " + String.join(", ", suggestions));
         }
-        return fetchWeatherForecast(coordinates);
+        String weatherForecast = fetchWeatherForecast(coordinates);
+        String news = fetchCityNews(cityName);
+        return weatherForecast + "\n\n" + news; // Объединяем прогноз погоды и новости
     }
 
-    private List<String> findSimilarCities(String input) {
+    List<String> findSimilarCities(String input) {
         List<String> similarCities = new ArrayList<>();
         String lowerCaseInput = input.toLowerCase();
 
@@ -86,9 +91,8 @@ public class API {
         return similarCities;
     }
 
-
     // Метод для вычисления расстояния Левенштейна
-    private int getLevenshteinDistance(String a, String b) {
+    int getLevenshteinDistance(String a, String b) {
         int[][] dp = new int[a.length() + 1][b.length() + 1];
         for (int i = 0; i <= a.length(); i++) {
             for (int j = 0; j <= b.length(); j++) {
@@ -105,7 +109,6 @@ public class API {
         return dp[a.length()][b.length()];
     }
 
-
     public String fetchWeatherForecast(Coordinates coordinates) {
         try {
             URI apiUrl = new URI(WEATHER_API_URL_BASE.toString() + "?lat=" + coordinates.getLatitude() + "&lon=" + coordinates.getLongitude());
@@ -115,7 +118,6 @@ public class API {
             return "Ошибка при создании URL для прогноза погоды.";
         }
     }
-
 
     private Coordinates getCoordinates(String city) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
@@ -153,11 +155,10 @@ public class API {
         return null;
     }
 
-
     private String fetchWeatherData(URI apiUrl) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpGet request = new HttpGet(apiUrl);
-            request.addHeader("X-Yandex-Weather-Key", API_KEY);
+            request.addHeader("X-Yandex-Weather-Key", WEATHER_API_KEY);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getStatusLine().getStatusCode() == 200) {
@@ -173,7 +174,6 @@ public class API {
         }
     }
 
-
     private String parseWeatherResponse(String jsonResponse) {
         StringBuilder weatherBuilder = new StringBuilder();
         try {
@@ -183,6 +183,10 @@ public class API {
             JsonNode factNode = rootNode.path("fact");
             String description = factNode.path("condition").asText();
             double temperature = factNode.path("temp").asDouble();
+
+            // Генерация уведомления об изменении погоды
+            String weatherChangeNotification = generateWeatherChangeNotification(temperature, description, rootNode);
+            weatherBuilder.append(weatherChangeNotification);
 
             weatherBuilder.append("Температура: ").append(String.format("%.2f", temperature)).append(" °C\n");
             weatherBuilder.append("Описание: ").append(translateCondition(description)).append("\n");
@@ -205,6 +209,56 @@ public class API {
         }
         return weatherBuilder.toString();
     }
+
+    private String generateWeatherChangeNotification(double currentAverageTemperature, String currentCondition, JsonNode rootNode) {
+        StringBuilder notification = new StringBuilder();
+
+        // Получаем данные о погоде на завтра
+        JsonNode forecastsNode = rootNode.path("forecasts");
+        if (forecastsNode.isArray() && forecastsNode.size() > 1) {
+            JsonNode todayForecast = forecastsNode.get(1);
+            JsonNode tomorrowForecast = forecastsNode.get(2);
+
+            double todayAverageTemperature = todayForecast.path("parts").path("day").path("temp_avg").asDouble(); // Средняя температура сегодня
+            double tomorrowAverageTemperature = tomorrowForecast.path("parts").path("day").path("temp_avg").asDouble(); // Средняя температура завтра
+            String tomorrowCondition = tomorrowForecast.path("parts").path("day").path("condition").asText(); // Состояние погоды на завтра
+
+            // Сравнение средней температуры на сегодня с завтрашней средней температурой
+            if (tomorrowAverageTemperature > todayAverageTemperature) {
+                notification.append("Погода улучшится: температура повысится на ")
+                        .append(tomorrowAverageTemperature - todayAverageTemperature)
+                        .append(" °C завтра.\n");
+            } else if (tomorrowAverageTemperature < todayAverageTemperature) {
+                notification.append("Погода ухудшится: температура понизится на ")
+                        .append(todayAverageTemperature - tomorrowAverageTemperature)
+                        .append(" °C завтра.\n");
+            } else {
+                notification.append("Температура останется на уровне ")
+                        .append(todayAverageTemperature)
+                        .append(" °C завтра.\n");
+            }
+
+            if (tomorrowAverageTemperature < 0) {
+                notification.append("Обратите внимание: завтрашняя температура будет ниже нуля.\n");
+            }
+
+            if (!tomorrowCondition.equals(currentCondition)) {
+                notification.append("Состояние погоды изменится: ")
+                        .append(translateCondition(currentCondition))
+                        .append(" -> ")
+                        .append(translateCondition(tomorrowCondition))
+                        .append(".\n");
+            } else {
+                notification.append("Состояние погоды останется прежним: ")
+                        .append(translateCondition(currentCondition))
+                        .append(".\n");
+            }
+        }
+
+        return notification.toString();
+    }
+
+
 
 
     private String translateCondition(String condition) {
@@ -246,5 +300,65 @@ public class API {
             default:
                 return "неизвестно";
         }
+    }
+
+    String fetchCityNews(String cityName) {
+        try {
+            LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+            String fromDate = oneWeekAgo.format(formatter) + "Z"; // Добавляем Z для указания на UTC
+
+            URI apiUrl = new URI(NEWS_API_URL.toString() + "?q=" + cityName + "&apiKey="
+                    + NEWS_API_KEY + "&sortBy=popularity&from=" + fromDate);
+            return fetchNewsData(apiUrl);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return "Ошибка при создании URL для получения новостей.";
+        }
+    }
+
+    private String fetchNewsData(URI apiUrl) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpGet request = new HttpGet(apiUrl);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    String jsonResponse = EntityUtils.toString(response.getEntity());
+                    return parseNewsResponse(jsonResponse);
+                } else {
+                    return "Не удалось получить данные о новостях. Статус: " + response.getStatusLine().getStatusCode();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Ошибка при получении данных о новостях.";
+        }
+    }
+
+    private String parseNewsResponse(String jsonResponse) {
+        StringBuilder newsBuilder = new StringBuilder();
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = objectMapper.readTree(jsonResponse);
+            JsonNode articlesNode = rootNode.path("articles");
+
+            if (articlesNode.isArray() && articlesNode.size() > 0) {
+                JsonNode topArticle = articlesNode.get(0);
+                String title = topArticle.path("title").asText();
+                String url = topArticle.path("url").asText();
+                String description = topArticle.path("description").asText();
+
+                newsBuilder.append("Самая популярная новость:\n");
+                newsBuilder.append("Заголовок: ").append(title).append("\n");
+                newsBuilder.append("Описание: ").append(description).append("\n");
+                newsBuilder.append("Ссылка: ").append(url).append("\n");
+            } else {
+                newsBuilder.append("Нет доступных новостей для этого города.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Ошибка при обработке данных о новостях.";
+        }
+        return newsBuilder.toString();
     }
 }

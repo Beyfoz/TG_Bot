@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +29,7 @@ class ApiTest {
     @Test
     void testFetchWeatherForecast_Success() throws IOException {
         String mockGeoResponse = "[{\"lat\":55.625578,\"lon\":37.6063916}]";
-        String mockWeatherResponse = "{\"fact\":{\"temp\":20,\"condition\":\"clear\"}, \"forecasts\":[{\"date\":\"2024-12-07\",\"parts\":{\"day\":{\"temp_avg\":15,\"condition\":\"clear\"}}}]}";
+        String mockWeatherResponse = "{\"fact\":{\"temp\":-20,\"condition\":\"clear\"}, \"forecasts\":[{\"date\":\"2024-12-07\",\"parts\":{\"day\":{\"temp_avg\":-15,\"condition\":\"clear\"}}}]}";
 
         // Мокируем ответ геолокационного API
         CloseableHttpResponse mockGeoResponseEntity = mock(CloseableHttpResponse.class);
@@ -52,8 +53,19 @@ class ApiTest {
         // Выполняем метод и проверяем результат
         String weatherData = api.fetchWeatherByCity("Москва");
         assertNotNull(weatherData);
+
+        String temperatureString = weatherData.substring(weatherData.indexOf("Температура: ")
+                + "Температура: ".length());
+        temperatureString = temperatureString.substring(0, temperatureString.indexOf(" °C"));
+        temperatureString = temperatureString.replace(",", ".");
+        double temperature = Double.parseDouble(temperatureString);
+
+        assertTrue(temperature >= -30 && temperature <= 0,
+                "Температура не в диапазоне от -30 до 0 градусов");
     }
 
+
+//проверка вывода ошибки в ситуации когда координаты для запрашиваемого города отсутствуют.
     @Test
     void testFetchWeatherForecast_CoordinatesNotFound() throws IOException {
         String mockGeoResponse = "[]"; // No coordinates found
@@ -71,5 +83,20 @@ class ApiTest {
         // Выполняем метод и проверяем результат
         String weatherData = api.fetchWeatherByCity("НеизвестныйГород");
         assertEquals("Не удалось найти координаты для города: НеизвестныйГород", weatherData);
+    }
+
+    // Тест для проверки работы метода findSimilarCities
+    @Test
+    void testFindSimilarCities() {
+        String cityName = "Москва";
+        List<String> similarCities = api.findSimilarCities(cityName);
+        assertTrue(similarCities.contains("Москва")); // Проверяем, что город "Москва" есть в списке
+    }
+
+    // Тест для проверки работы метода getLevenshteinDistance
+    @Test
+    void testGetLevenshteinDistance() {
+        int distance = api.getLevenshteinDistance("Москва", "Моска");
+        assertEquals(1, distance); // Проверяем расстояние Левенштейна
     }
 }
