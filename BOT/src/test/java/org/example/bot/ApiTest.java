@@ -65,7 +65,7 @@ class ApiTest {
     }
 
 
-//проверка вывода ошибки в ситуации когда координаты для запрашиваемого города отсутствуют.
+    //проверка вывода ошибки в ситуации когда координаты для запрашиваемого города отсутствуют.
     @Test
     void testFetchWeatherForecast_CoordinatesNotFound() throws IOException {
         String mockGeoResponse = "[]"; // No coordinates found
