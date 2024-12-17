@@ -5,7 +5,7 @@ import org.example.bot.commands.InfoCommand;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-class CommandTests {
+class TestOne {
 
     @Test
     public void StartTest() {
