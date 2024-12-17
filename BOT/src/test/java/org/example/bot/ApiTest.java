@@ -29,7 +29,9 @@ class ApiTest {
     @Test
     void testFetchWeatherForecast_Success() throws IOException {
         String mockGeoResponse = "[{\"lat\":55.625578,\"lon\":37.6063916}]";
-        String mockWeatherResponse = "{\"fact\":{\"temp\":-20,\"condition\":\"clear\"}, \"forecasts\":[{\"date\":\"2024-12-07\",\"parts\":{\"day\":{\"temp_avg\":-15,\"condition\":\"clear\"}}}]}";
+        String mockWeatherResponse = "{\"fact\":{\"temp\":-20,\"condition\":\"clear\"}," +
+                " \"forecasts\":[{\"date\":\"2024-12-07\"," +
+                "\"parts\":{\"day\":{\"temp_avg\":-15,\"condition\":\"clear\"}}}]}";
 
         // Мокируем ответ геолокационного API
         CloseableHttpResponse mockGeoResponseEntity = mock(CloseableHttpResponse.class);
